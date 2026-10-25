@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Plus, Edit2, Trash2, Search, Package, X, Upload, Image as ImageIcon } from 'lucide-react';
 import ClothesLoader from '@/components/ClothesLoader';
 
@@ -124,6 +124,7 @@ export default function AdminProductsPage() {
 
   // Open Modal for Creating or Editing
   const handleOpenModal = (product = null) => {
+    sourceFiles.current = {};
     if (product) {
       setEditingId(product._id);
       const initialImages = Array.isArray(product.images) ? [...product.images] : [];
@@ -162,10 +163,10 @@ export default function AdminProductsPage() {
   };
 
   // Convert File to Compressed Base64 String (~50KB) for a specific slot index (0 or 1)
-  const handleImageUpload = (e, slotIndex) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // Original files per photo slot, so the background option can be re-applied when toggled
+  const sourceFiles = useRef({});
 
+  const processImageFile = (file, slotIndex, removeFlag) => {
     const reader = new FileReader();
     reader.onload = (event) => {
       const img = new Image();
@@ -201,7 +202,7 @@ export default function AdminProductsPage() {
           const ch = canvas.height;
           const imageData = ctx.getImageData(0, 0, cw, ch);
 
-          if (removeBg) {
+          if (removeFlag) {
             if (removePlainBackground(imageData)) {
               ctx.putImageData(imageData, 0, 0);
             } else {
@@ -272,7 +273,24 @@ export default function AdminProductsPage() {
     reader.readAsDataURL(file);
   };
 
+  const handleImageUpload = (e, slotIndex) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // lets the same file be picked again
+    if (!file) return;
+    sourceFiles.current[slotIndex] = file;
+    processImageFile(file, slotIndex, removeBg);
+  };
+
+  // Ticking/unticking re-processes photos already chosen in this form
+  const handleRemoveBgToggle = (checked) => {
+    setRemoveBg(checked);
+    Object.entries(sourceFiles.current).forEach(([slot, file]) => {
+      processImageFile(file, slot === 'side' ? 'side' : Number(slot), checked);
+    });
+  };
+
   const handleRemoveImage = (slotIndex) => {
+    delete sourceFiles.current[slotIndex];
     if (slotIndex === 'side') {
       setForm((prev) => ({ ...prev, sideImage: '' }));
       return;
@@ -677,13 +695,14 @@ export default function AdminProductsPage() {
                 <input
                   type="checkbox"
                   checked={removeBg}
-                  onChange={(e) => setRemoveBg(e.target.checked)}
+                  onChange={(e) => handleRemoveBgToggle(e.target.checked)}
                   className="mt-0.5 accent-indigo-600"
                 />
                 <span className="text-[11px] text-gray-700 leading-snug">
-                  <span className="font-bold text-gray-900">Auto-remove plain background</span> on new uploads
-                  (any format). Works best on solid white / single-colour backgrounds. Transparent PNG, WebP, AVIF and GIF
-                  cut-outs are kept as they are and auto-trimmed.
+                  <span className="font-bold text-gray-900">Auto-remove plain background</span> for the photos below
+                  (any format). Works best on solid white / single-colour backgrounds, and re-applies to photos you picked
+                  in this form when you tick or untick it. Photos already saved need to be uploaded again.
+                  Transparent PNG, WebP, AVIF and GIF cut-outs are kept as they are and auto-trimmed.
                 </span>
               </label>
 
