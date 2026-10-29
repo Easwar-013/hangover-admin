@@ -66,7 +66,7 @@ export default function AdminTrendingPage() {
 
   // Extract dynamic categories from existing catalog
   const availableCategories = useMemo(() => {
-    const defaultCats = ['All', '⭐ Trending'];
+    const defaultCats = ['All', ' Trending'];
     const cats = Array.from(new Set(products.map((p) => p.category).filter(Boolean)));
     return [...defaultCats, ...cats];
   }, [products]);
