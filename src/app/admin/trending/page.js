@@ -147,7 +147,7 @@ export default function AdminTrendingPage() {
       if (!matchesSearch) return false;
 
       if (selectedCategory === 'All') return true;
-      if (selectedCategory === '⭐ Trending') return trendingOrderIds.includes(String(p._id));
+      if (selectedCategory === ' Trending') return trendingOrderIds.includes(String(p._id));
       return p.category?.toLowerCase() === selectedCategory.toLowerCase();
     });
   }, [products, search, selectedCategory, trendingOrderIds]);
